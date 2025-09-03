@@ -25,6 +25,8 @@ class AdminConfigurator(loader.Module):
         self.configs = self.get("configs", {})
         self.current = {k: False for k in self._all_rights()}
         self.rank = "админ"
+        self._db = db
+        self.prefix = self.get_prefix()
 
     def _all_rights(self):
         return {
@@ -71,7 +73,7 @@ class AdminConfigurator(loader.Module):
         """<право> <on/off> — включить/выключить право"""
         args = utils.get_args(message)
         if len(args) != 2:
-            return await utils.answer(message, "❌ Используй: `.admins <право> <on/off>`")
+            return await utils.answer(message, "❌ Используй: `{prefix}admins <право> <on/off>`").format(prefix=self.prefix)
 
         key, state = args[0], args[1].lower()
         if key not in self._all_rights():
@@ -84,7 +86,7 @@ class AdminConfigurator(loader.Module):
         """<конфиг> <username/id/reply> <звание> — применить конфиг"""
         args = utils.get_args(message)
         if len(args) < 3:
-            return await utils.answer(message, "❌ Используй: `.admin <конфиг> <username/id/reply> <звание>`")
+            return await utils.answer(message, "❌ Используй: `{prefix}admin <конфиг> <username/id/reply> <звание>`").format(prefix=self.prefix)
 
         preset, target, rank = args[0], args[1], " ".join(args[2:])
         if preset not in self.configs:
@@ -146,7 +148,7 @@ class AdminConfigurator(loader.Module):
         """<старое> <новое> — переименовать конфигурацию"""
         args = utils.get_args(message)
         if len(args) < 2:
-            return await utils.answer(message, "❌ Используй: `.adminrename <старое> <новое>`")
+            return await utils.answer(message, "❌ Используй: `{prefix}adminrename <старое> <новое>`").format(prefix=self.prefix)
         old, new = args[0], args[1]
         if old not in self.configs:
             return await utils.answer(message, self.strings["not_found"].format(old))
