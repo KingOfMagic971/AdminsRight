@@ -2,7 +2,7 @@
 # meta developer: @Gosgrrr
 # scope: hikka_only
 
-version = (0, 0, 7)
+__version__ = (0, 0, 78)
 
 from .. import loader, utils
 from telethon.tl.types import ChatAdminRights
