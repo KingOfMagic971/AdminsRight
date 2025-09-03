@@ -1,5 +1,5 @@
 # AdminsRight
-Модуль поможет вам удобно назначать администраторов.
+Модуль поможет вам удобно назначать 
 # -*- coding: utf-8 -*-
 # meta developer: @Gosgrrr
 # scope: hikka_only
@@ -95,7 +95,8 @@ class AdminRightsConfig(loader.Module):
         return False
 
     # 📋 Форматированный список прав
-    def _format_rights(self):
+    def _format_rights(self, rights=None):
+        rights = rights or self.rights
         icons = {True: "✅", False: "❌"}
         names = {
             "info": "Изменение информации о группе",
@@ -112,9 +113,9 @@ class AdminRightsConfig(loader.Module):
             "editstory": "Редактирование историй",
             "delstory": "Удаление историй",
         }
-        text = "🔄 Текущие права для команды .admin:\n\n"
-        for right, enabled in self.rights.items():
-            text += f"{icons[enabled]} {right} ({names[right]})\n"
+        text = "🔄 Текущие права:\n\n"
+        for right, enabled in rights.items():
+            text += f"{icons[enabled]} `{right}` ({names[right]})\n"
         return text
 
     # 📌 Команды
@@ -153,7 +154,7 @@ class AdminRightsConfig(loader.Module):
         self._save_right(right, is_enabled)
 
         status = "ВКЛЮЧЕНО ✅" if is_enabled else "ВЫКЛЮЧЕНО ❌"
-        await utils.answer(message, f"{status} право **{right}** для команды .admin.")
+        await utils.answer(message, f"{status} право `{right}` для команды .admin.")
 
     async def adminsavecmd(self, message):
         """<имя> - сохранить текущую конфигурацию"""
@@ -165,3 +166,81 @@ class AdminRightsConfig(loader.Module):
         name = args[0]
         self._save_preset(name)
         await utils.answer(message, f"💾 Конфигурация «{name}» сохранена.")
+
+    async def adminlistcmd(self, message):
+        """- показать список сохранённых конфигураций"""
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM admin_presets")
+        presets = [row[0] for row in cursor.fetchall()]
+        conn.close()
+
+        if not presets:
+            await utils.answer(message, "📋 Сохранённых конфигураций нет.")
+            return
+
+        text = "📋 Сохранённые конфигурации прав:\n\n"
+        for name in presets:
+            text += f"• {name}\n"
+        await utils.answer(message, text)
+
+    async def adminshowcmd(self, message):
+        """<имя> - показать содержимое конфигурации"""
+        args = utils.get_args(message)
+        if not args:
+            await utils.answer(message, "❌ Используй: .adminshow <имя>")
+            return
+
+        name = args[0]
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT rights FROM admin_presets WHERE name = ?", (name,))
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            await utils.answer(message, f"❌ Конфигурация «{name}» не найдена.")
+            return
+
+        rights = json.loads(row[0])
+        await utils.answer(message, f"📋 Конфигурация **{name}**:\n\n" + self._format_rights(rights))
+
+    async def admindelcmd(self, message):
+        """<имя> - удалить конфигурацию"""
+        args = utils.get_args(message)
+        if not args:
+            await utils.answer(message, "❌ Используй: .admindel <имя>")
+            return
+
+        name = args[0]
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM admin_presets WHERE name = ?", (name,))
+        conn.commit()
+        deleted = cursor.rowcount
+        conn.close()
+
+        if deleted:
+            await utils.answer(message, f"🗑 Конфигурация «{name}» удалена.")
+        else:
+            await utils.answer(message, f"❌ Конфигурация «{name}» не найдена.")
+
+    async def adminrenamecmd(self, message):
+        """<старое> <новое> - переименовать конфигурацию"""
+        args = utils.get_args(message)
+        if len(args) != 2:
+            await utils.answer(message, "❌ Используй: .adminrename <старое> <новое>")
+            return
+
+        old, new = args
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE admin_presets SET name = ? WHERE name = ?", (new, old))
+        conn.commit()
+        updated = cursor.rowcount
+        conn.close()
+
+        if updated:
+            await utils.answer(message, f"✏️ Конфигурация «{old}» переименована в «{new}».")
+        else:
+            await utils.answer(message, f"❌ Конфигурация «{old}» не найдена.")
