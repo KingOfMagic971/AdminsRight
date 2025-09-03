@@ -80,7 +80,7 @@ class AdminConfigurator(loader.Module):
         lines = []
         for key, desc in (await self._all_rights()).items():
             state = "<emoji document_id=5258453452631056344>✅️</emoji>" if self.current.get(key, False) else "<emoji document_id=5260342697075416641>❌</emoji>"
-            lines.append(f"{state} `{key}` ({desc})")
+            lines.append(f"{state} <code>{key}</code> ({desc})")
         return self.strings["rights"].format("\n".join(lines))
 
     async def _to_rights(self):
@@ -159,9 +159,9 @@ class AdminConfigurator(loader.Module):
         conf = self.configs[name]
         lines = []
         for key, desc in (await self._all_rights()).items():
-            state = "<blockquote><emoji document_id=5258453452631056344>✅️</emoji>" if conf.get(key, False) else "<emoji document_id=5260342697075416641>❌</emoji>"
+            state = "<emoji document_id=5258453452631056344>✅️</emoji>" if conf.get(key, False) else "<emoji document_id=5260342697075416641>❌</emoji>"
             lines.append(f"{state} `{key}` ({desc})")
-        await utils.answer(message, f"⚙ Конфигурация <b>{name}</b>:\n\n" + "\n".join(lines) + "</blockquote>")
+        await utils.answer(message, f"<blockquote><emoji document_id=5258096772776991776>⚙</emoji> Конфигурация <b>{name}</b>:\n\n" + "\n".join(lines) + "</blockquote>")
 
     @loader.command(ru_doc="(название) — удалить конфигурацию", en_doc="(name) — delete a configuration")
     async def admindelete(self, message):
