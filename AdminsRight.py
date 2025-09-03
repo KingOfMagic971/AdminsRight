@@ -1,6 +1,8 @@
-# -*- coding: utf-8 -*-
+# -- coding: utf-8 --
 # meta developer: @Gosgrrr
 # scope: hikka_only
+
+version = (0, 0, 1)
 
 from .. import loader, utils
 from telethon.tl.types import ChatAdminRights
@@ -19,9 +21,18 @@ class AdminConfigurator(loader.Module):
         "deleted": "<blockquote><emoji document_id=5258130763148172425>🗑</emoji> Configuration <b>{}</b> deleted.</blockquote>",
         "renamed": "<blockquote><emoji document_id=5197269100878907942>✏️</emoji> Configuration <b>{}</b> renamed to <b>{}</b>.</blockquote>",
         "unadmin": "<blockquote><emoji document_id=5258453452631056344>✅️</emoji> <b>All rights and title removed from user {} successfully.</b></blockquote>",
+        "invalid_admins_usage": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Use: <code>{prefix}admins (right) (on/off)</code></blockquote>",
+        "unknown_right": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Unknown right: <code>{}</code></blockquote>",
+        "invalid_admin_usage": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Use: <code>{prefix}admin (config) (username/id/reply) (title)</code></blockquote>",
+        "admin_error": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Error: {}</blockquote>",
+        "no_config_name": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Specify the configuration name</blockquote>",
+        "no_configs": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> No saved configurations</blockquote>",
+        "invalid_rename_usage": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Use: <code>{prefix}adminrename (old) (new)</code></blockquote>",
+        "invalid_unadmin_usage": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Specify username/id or reply to a message</blockquote>",
     }
 
     strings_ru = {
+        "name": "AdminConfigurator",
         "rights": "<blockquote><emoji document_id=5258420634785947640>🔄</emoji> Текущие права:\n\n{}</blockquote>",
         "saved": "<blockquote><emoji document_id=5258453452631056344>✅️</emoji> Конфигурация <b>{}</b> сохранена.</blockquote>",
         "loaded": "<blockquote><emoji document_id=5251203410396458957>🛡</emoji> {} назначен(а) администратором с званием «{}».</blockquote>",
@@ -30,6 +41,14 @@ class AdminConfigurator(loader.Module):
         "deleted": "<blockquote><emoji document_id=5258130763148172425>🗑</emoji> Конфигурация <b>{}</b> удалена.</blockquote>",
         "renamed": "<blockquote><emoji document_id=5197269100878907942>✏️</emoji> Конфигурация <b>{}</b> переименована в <b>{}</b>.</blockquote>",
         "unadmin": "<blockquote><emoji document_id=5258453452631056344>✅️</emoji> <b>Все права и звание с пользователя {} успешно сняты.</b></blockquote>",
+        "invalid_admins_usage": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Используй: <code>{prefix}admins (право) (on/off)</code></blockquote>",
+        "unknown_right": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Неизвестное право: <code>{}</code></blockquote>",
+        "invalid_admin_usage": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Используй: <code>{prefix}admin (конфиг) (username/id/reply) (звание)</code></blockquote>",
+        "admin_error": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Ошибка: {}</blockquote>",
+        "no_config_name": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Укажи название конфигурации</blockquote>",
+        "no_configs": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Нет сохранённых конфигураций</blockquote>",
+        "invalid_rename_usage": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Используй: <code>{prefix}adminrename (старое) (новое)</code></blockquote>",
+        "invalid_unadmin_usage": "<blockquote><emoji document_id=5260342697075416641>❌</emoji> Укажи username/id или ответь на сообщение</blockquote>",
     }
 
     async def client_ready(self, client, db):
@@ -60,7 +79,7 @@ class AdminConfigurator(loader.Module):
     async def _format_rights(self):
         lines = []
         for key, desc in (await self._all_rights()).items():
-            state = "✅" if self.current.get(key, False) else "❌"
+            state = "<emoji document_id=5258453452631056344>✅️</emoji>" if self.current.get(key, False) else "<emoji document_id=5260342697075416641>❌</emoji>"
             lines.append(f"{state} `{key}` ({desc})")
         return self.strings["rights"].format("\n".join(lines))
 
@@ -85,11 +104,11 @@ class AdminConfigurator(loader.Module):
     async def admins(self, message):
         args = utils.get_args(message)
         if len(args) != 2:
-            return await utils.answer(message, "❌ Используй: `{prefix}admins (право) (on/off)`".format(prefix=self.prefix))
+            return await utils.answer(message, self.strings["invalid_admins_usage"].format(prefix=self.prefix))
 
         key, state = args[0], args[1].lower()
         if key not in await self._all_rights():
-            return await utils.answer(message, f"❌ Неизвестное право: `{key}`")
+            return await utils.answer(message, self.strings["unknown_right"].format(key))
 
         self.current[key] = state == "on"
         await utils.answer(message, await self._format_rights())
@@ -98,7 +117,7 @@ class AdminConfigurator(loader.Module):
     async def admin(self, message):
         args = utils.get_args(message)
         if len(args) < 3:
-            return await utils.answer(message, "❌ Используй: `{prefix}admin (конфиг) (username/id/reply) (звание)`".format(prefix=self.prefix))
+            return await utils.answer(message, self.strings["invalid_admin_usage"].format(prefix=self.prefix))
 
         preset, target, rank = args[0], args[1], " ".join(args[2:])
         if preset not in self.configs:
@@ -110,13 +129,13 @@ class AdminConfigurator(loader.Module):
             await self.client.edit_admin(message.chat_id, user.id, rights, rank)
             await utils.answer(message, self.strings["loaded"].format(utils.escape_html(user.first_name), rank))
         except Exception as e:
-            await utils.answer(message, f"❌ Ошибка: {e}")
+            await utils.answer(message, self.strings["admin_error"].format(e))
 
     @loader.command(ru_doc="(название) — сохранить текущую конфигурацию", en_doc="(name) — save the current configuration")
     async def adminsave(self, message):
         args = utils.get_args(message)
         if not args:
-            return await utils.answer(message, "❌ Укажи название конфигурации")
+            return await utils.answer(message, self.strings["no_config_name"])
         name = args[0]
         self.configs[name] = self.current.copy()
         await self._save()
@@ -125,7 +144,7 @@ class AdminConfigurator(loader.Module):
     @loader.command(ru_doc="— показать список сохранённых конфигураций", en_doc="— show list of saved configurations")
     async def adminlist(self, message):
         if not self.configs:
-            return await utils.answer(message, "❌ Нет сохранённых конфигураций")
+            return await utils.answer(message, self.strings["no_configs"])
         text = "\n".join([f"• <b>{name}</b>" for name in self.configs])
         await utils.answer(message, self.strings["list"].format(text))
 
@@ -133,14 +152,14 @@ class AdminConfigurator(loader.Module):
     async def adminshow(self, message):
         args = utils.get_args(message)
         if not args:
-            return await utils.answer(message, "❌ Укажи название конфигурации")
+            return await utils.answer(message, self.strings["no_config_name"])
         name = args[0]
         if name not in self.configs:
             return await utils.answer(message, self.strings["not_found"].format(name))
         conf = self.configs[name]
         lines = []
         for key, desc in (await self._all_rights()).items():
-            state = "✅" if conf.get(key, False) else "❌"
+            state = "<emoji document_id=5258453452631056344>✅️</emoji>" if conf.get(key, False) else "<emoji document_id=5260342697075416641>❌</emoji>"
             lines.append(f"{state} `{key}` ({desc})")
         await utils.answer(message, f"⚙ Конфигурация <b>{name}</b>:\n\n" + "\n".join(lines))
 
@@ -148,7 +167,7 @@ class AdminConfigurator(loader.Module):
     async def admindelete(self, message):
         args = utils.get_args(message)
         if not args:
-            return await utils.answer(message, "❌ Укажи название конфигурации")
+            return await utils.answer(message, self.strings["no_config_name"])
         name = args[0]
         if name not in self.configs:
             return await utils.answer(message, self.strings["not_found"].format(name))
@@ -160,7 +179,7 @@ class AdminConfigurator(loader.Module):
     async def adminrename(self, message):
         args = utils.get_args(message)
         if len(args) < 2:
-            return await utils.answer(message, "❌ Используй: `{prefix}adminrename (старое) (новое)`".format(prefix=self.prefix))
+            return await utils.answer(message, self.strings["invalid_rename_usage"].format(prefix=self.prefix))
         old, new = args[0], args[1]
         if old not in self.configs:
             return await utils.answer(message, self.strings["not_found"].format(old))
@@ -172,7 +191,7 @@ class AdminConfigurator(loader.Module):
     async def unadmin(self, message):
         args = utils.get_args(message)
         if not args and not message.is_reply:
-            return await utils.answer(message, "❌ Укажи username/id или ответь на сообщение")
+            return await utils.answer(message, self.strings["invalid_unadmin_usage"])
 
         target = args[0] if args else None
         user = await utils.get_user(message, target)
@@ -192,4 +211,4 @@ class AdminConfigurator(loader.Module):
             await self.client.edit_admin(message.chat_id, user.id, rights, "")
             await utils.answer(message, self.strings["unadmin"].format(utils.escape_html(user.first_name)))
         except Exception as e:
-            await utils.answer(message, f"❌ Ошибка: {e}")
+            await utils.answer(message, self.strings["admin_error"].format(e))
