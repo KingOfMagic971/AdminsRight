@@ -2,7 +2,7 @@
 # meta developer: @Gosgrrr
 # scope: hikka_only
 
-version = (0, 0, 1)
+version = (0, 0, 5)
 
 from .. import loader, utils
 from telethon.tl.types import ChatAdminRights
@@ -159,9 +159,9 @@ class AdminConfigurator(loader.Module):
         conf = self.configs[name]
         lines = []
         for key, desc in (await self._all_rights()).items():
-            state = "<emoji document_id=5258453452631056344>✅️</emoji>" if conf.get(key, False) else "<emoji document_id=5260342697075416641>❌</emoji>"
+            state = "<blockquote><emoji document_id=5258453452631056344>✅️</emoji>" if conf.get(key, False) else "<emoji document_id=5260342697075416641>❌</emoji>"
             lines.append(f"{state} `{key}` ({desc})")
-        await utils.answer(message, f"⚙ Конфигурация <b>{name}</b>:\n\n" + "\n".join(lines))
+        await utils.answer(message, f"⚙ Конфигурация <b>{name}</b>:\n\n" + "\n".join(lines) + "</blockquote>")
 
     @loader.command(ru_doc="(название) — удалить конфигурацию", en_doc="(name) — delete a configuration")
     async def admindelete(self, message):
